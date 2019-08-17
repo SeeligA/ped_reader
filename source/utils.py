@@ -1,6 +1,9 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sb
+import os
+import zipfile
+import sys
 
 
 def plot(df, cat_column=None, kde=True, save=False, color=None, ped=None, linewidth=5, fontsize=20):
@@ -68,11 +71,13 @@ def dict_to_obj(obj_dict):
         # We use the built in __import__ function since the module name is not yet known at runtime
         module = __import__(module_name)
 
-        # Get the class from the module
+        # Get the class from the module. The control flow is to help find modules from the "source" folder
         if module_name == "source.entries":
             class_ = getattr(module.entries, class_name)
         elif module_name == "source.subs":
             class_ = getattr(module.subs, class_name)
+        else:
+            class_ = getattr(module, class_name)
 
         # Use dictionary unpacking to initialize the object
         obj = class_(**obj_dict)
@@ -98,4 +103,34 @@ def obj_to_dict(obj):
     #  Populate the dictionary with object properties
     obj_dict.update(obj.__dict__)
 
+    _ = obj_dict.pop("NAMESPACES", None)
+
     return obj_dict
+
+
+def create_backup(dir_name, fps):
+
+    zip_file = zipfile.ZipFile(os.path.join(dir_name, 'Backup_SDLXLIFF.zip'), 'w')
+    with zip_file:
+        for fp in fps:
+            zip_file.write(fp)
+    print('Backup containing {} files created here: {}'.format(len(fps), dir_name))
+
+
+def retrieve_file_paths(dir_name):
+    # setup file paths variable
+    fps = []
+    # Read all directory, subdirectories and file lists
+    for root, dirs, files in os.walk(dir_name):
+        for filename in filter(lambda file: file.endswith('.sdlxliff'), files):
+            # Create the full filepath by using os module.
+            fp = os.path.join(root, filename)
+            fps.append(fp)
+
+    if len(fps) > 0:
+        create_backup(dir_name, fps)
+        return fps
+
+    else:
+        print("No valid files found in path.")
+        sys.exit(1)

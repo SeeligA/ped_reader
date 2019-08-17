@@ -1,7 +1,10 @@
 import copy
 import json
+
 from source.utils import dict_to_obj, obj_to_dict
 from source.calculation import virtual_pe_density
+from source.xliff import create_tree
+from source.utils import retrieve_file_paths
 
 
 class PreprocSub(object):
@@ -18,12 +21,12 @@ class PreprocSub(object):
             self.ped_effect = ped_effect
             self.entries = entries
 
-    def apply(self, df, verbose=False):
+    def apply_to_table(self, df, verbose=False):
         """
         Apply substitutions to data and log effect on PED.
         
         Arguments:
-            df -- DataFrame object with "source" and "mt" columns. 
+            df -- DataFrame object with "source" and "mt" columns.
                   Any data in the "virtual" column will be overwritten.
             verbose -- Boolean flag to control whether PED update will be written to sdtout or not.
                   
@@ -42,7 +45,6 @@ class PreprocSub(object):
                 print("Original PED:\t{:f}".format(subs_ped[0]))
             
             # Iterate through entries and run search & replace on MT data
-
             for entry in self.entries:
                 # Apply search and replace to MT data
                 df = entry.search_and_replace(df)
@@ -59,6 +61,20 @@ class PreprocSub(object):
             self.ped_effect = ped - subs_ped[-1]
             # Re-index entries based on PED effect
             self.reindex_and_sort_entries()
+
+    def apply_to_working_files(self, directory, write=True):
+
+        fps = retrieve_file_paths(directory)
+
+        for fp in fps:
+            tree, tus = create_tree(fp)
+
+            # Iterate through entries and run search & replace on MT data
+            for entry in self.entries:
+                tus = entry.search_and_replace(tus)
+
+            if write:
+                tree.write(fp)
 
     def reindex_and_sort_entries(self):
 

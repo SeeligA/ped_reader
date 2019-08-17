@@ -26,7 +26,7 @@ def create_df(directory):
     df = pd.DataFrame(columns=columns)
     
     for file in os.listdir(directory):
-        logging.info("Loading: ".format(file))
+        logging.info("Loading: {}".format(file))
         
         if file.endswith(".json"):
             fp = os.path.join(directory, file)
