@@ -96,9 +96,9 @@ def obj_to_dict(obj):
 
     #  Populate the dictionary with object meta data 
     obj_dict = {
-    "__class__": obj.__class__.__name__,
-    "__module__": obj.__module__
-    }
+                "__class__": obj.__class__.__name__,
+                "__module__": obj.__module__
+                }
 
     #  Populate the dictionary with object properties
     obj_dict.update(obj.__dict__)
@@ -112,8 +112,8 @@ def create_backup(dir_name, fps):
 
     zip_file = zipfile.ZipFile(os.path.join(dir_name, 'Backup_SDLXLIFF.zip'), 'w')
     with zip_file:
-        for fp in fps:
-            zip_file.write(fp)
+        [zip_file.write(fp) for fp in fps]
+
     print('Backup containing {} files created here: {}'.format(len(fps), dir_name))
 
 
@@ -123,9 +123,7 @@ def retrieve_file_paths(dir_name):
     # Read all directory, subdirectories and file lists
     for root, dirs, files in os.walk(dir_name):
         for filename in filter(lambda file: file.endswith('.sdlxliff'), files):
-            # Create the full filepath by using os module.
-            fp = os.path.join(root, filename)
-            fps.append(fp)
+            fps.append(os.path.join(root, filename))
 
     if len(fps) > 0:
         create_backup(dir_name, fps)

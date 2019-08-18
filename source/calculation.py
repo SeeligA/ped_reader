@@ -1,4 +1,4 @@
-import pandas as pd
+import numpy as np
 
 
 def levenshtein(s1, s2):
@@ -33,8 +33,8 @@ def levenshtein(s1, s2):
     return previous_row[-1]
 
 
-def pe_density(df):
-    """Calculate post edit density for MT strings
+def virtual_pe_density(df):
+    """Calculate post edit density for MT strings.
 
     Arguments:
         df -- 
@@ -45,37 +45,42 @@ def pe_density(df):
                  updated cache with ped result
     """
     
-    lev_count = float()
-    char_count = int()
-    virtual_scores = []
+    # Write the maximum length for each target-mt pair to a new column. We need this value to avoid dividing by zero.
+    df["max_char"] = df.apply(lambda x: max(len(x.target), len(x.mt)), axis=1)
+    # Calculate Levenshtein distance for each target-mt pair.
+    df["lev"] = df.apply(lambda x: levenshtein(x.target, x.mt), axis=1)
+    # Normalize Levenshtein distance by maximum segment length.
+    df['virtual'] = df['lev'].copy().div(df['max_char'])
 
-    # Run through dataframe and calculate Levenshtein distance and
-    # max length for each pair of strings
-    for i in df.index:
-        s1 = df.loc[i, "target"]
-        s2 = df.loc[i, "mt"]
-                
-        if len(s1) == len(s2):
-            max_char = len(s1)        
-        
-        else:
-            max_char = max(len(s1), len(s2))
+    return df
 
-        lev = levenshtein(s1, s2)
-        virtual_scores.append(lev/max_char)
 
-        char_count += max_char
-        lev_count += lev        
+def pe_density(df):
+    """Calculate the aggregated Post-Edit Distance score for all rows in a DataFrame."""
 
-    ped = lev_count / char_count    
-    
-    return ped, virtual_scores
-    
+    # If PED has not been computed yet, insert the scores in the virtual column.
+    col_names = {"virtual": df.score,
+                 "max_char": df.apply(lambda x: max(len(x.target), len(x.mt)), axis=1),
+                 "lev": None
+                 }
 
-def virtual_pe_density(df):
-    
-    #  TODO: Make sure that PED is only re-calculated for strings that have been changed
-    ped, virtual_scores = pe_density(df)
-    df['virtual'] = pd.Series(virtual_scores, index=df.index)
-    
-    return ped
+    for name, value in col_names.items():
+        if name not in df.columns:
+            if name == 'lev':
+                # Calculate the maximum string length and derive
+                # the Levenshtein distance from the two other columns.
+                # Note that this only works if the two named columns have been inserted before.
+                value = df['virtual'].mul(df['max_char'])
+            df.insert(loc=len(df.columns), column=name, value=value)
+
+    # Only strings that have been altered need to be recomputed,
+    # When replacing a string in the MT column, we reset the virtual value to NaN.
+    if df['virtual'].isna().any():
+        # Slice the table and recompute the virtual score.
+        df_update = virtual_pe_density(df[df['virtual'].isna()].copy())
+        # Update the table with the table slice.
+        df.update(df_update)
+
+    ped = df['lev'].sum() / df['max_char'].sum()
+
+    return ped, df

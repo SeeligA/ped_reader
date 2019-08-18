@@ -26,6 +26,13 @@ class BaseEntry(object):
                 substring.text = re.sub(self.search, self.replace, substring.text)
             elif substring.tail:
                 substring.tail = re.sub(self.search, self.replace, substring.tail)
+
+    def mask_match(self, df):
+        """Reset virtual score if MT string matches search expression."""
+
+        p = re.compile(r'{}'.format(self.search))
+
+        return df["virtual"].mask(df.mt.str.contains(p) == True)
     
 
 class SearchMTEntry(BaseEntry):
@@ -35,9 +42,12 @@ class SearchMTEntry(BaseEntry):
     def search_and_replace(self, obj):
 
         if obj.__class__.__name__ == "DataFrame":
+
+            obj['virtual'] = self.mask_match(obj.copy())
+
             obj.mt = obj.mt.str.replace(self.search, self.replace)
 
-        elif obj.__class__.__name__ == "list":\
+        elif obj.__class__.__name__ == "list":
             obj = [self.replace_target(element) for element in obj]
 
         return obj
@@ -52,9 +62,15 @@ class SearchSourceEntry(BaseEntry):
         p = re.compile(r'{}'.format(self.source))
 
         if obj.__class__.__name__ == "DataFrame":
-            source_filter = obj.source.str.contains(p, regex=True)
-            update = obj[source_filter].mt.str.replace(self.search, self.replace)
-
+            # Create filter based on source expression
+            source_filter = obj.source.str.contains(p)
+            # Copy filtered values to update table
+            update = obj[source_filter].copy()
+            # Reset virtual scores if row matches source filter and search expression matches MT string
+            obj['virtual'] = obj['virtual'].mask(source_filter, self.mask_match(obj.copy()))
+            # Apply search and replace to update table
+            update = update.mt.str.replace(self.search, self.replace)
+            # Overwrite values in original table with update values
             obj.mt.update(update)
 
         elif obj.__class__.__name__ == "list":
@@ -93,20 +109,35 @@ class ToggleCaseEntry(BaseEntry):
             if self.replace == 'upper':
                 # Filter for rows in which the first n source characters are uppercase
                 source_filter = obj.source.str[0:search_length].str.isupper()
-                # Convert the first n MT characters to uppercase and create Series
-                update = obj[source_filter].mt.str[0:search_length].str.upper()
+
+                update = obj[source_filter].copy()
+                # Reset virtual scores if row matches source filter and search expression matches MT string
+                obj['virtual'] = obj['virtual'].mask(source_filter, self.mask_match(obj.copy()))
+
+                # Convert the first n MT characters to upper case and create Series
+                update = update.mt.str[0:search_length].str.upper()
 
             elif self.replace == 'istitle':
                 # Filter for rows in which the first n source characters are in title case
                 source_filter = obj.source.str[0:search_length].str.istitle()
+
+                update = obj[source_filter].copy()
+                # Reset virtual scores if row matches source filter and search expression matches MT string
+                obj['virtual'] = obj['virtual'].mask(source_filter, self.mask_match(obj.copy()))
+
                 # Convert the first n MT characters to title case and create Series
-                update = obj[source_filter].mt.str[0:search_length].str.title()
+                update = update.mt.str[0:search_length].str.title()
 
             elif self.replace == 'lower':
                 # Filter for rows in which the first n source characters are in title case
                 source_filter = obj.source.str[0:search_length].str.islower()
+
+                update = obj[source_filter].copy()
+                # Reset virtual scores if row matches source filter and search expression matches MT string
+                obj['virtual'] = obj['virtual'].mask(source_filter, self.mask_match(obj.copy()))
+
                 # Convert the first n MT characters to title case and create Series
-                update = obj[source_filter].mt.str[0:search_length].str.lower()
+                update = update.mt.str[0:search_length].str.lower()
 
             # Extract MT strings that have not been changed and create Pandas Series
             if search_length is not None:
@@ -128,13 +159,13 @@ class ToggleCaseEntry(BaseEntry):
             source_check = function_dict.get(self.replace)[0]
             action = function_dict.get(self.replace)[1]
 
-            def update_substring(string, search_length, action):
+            def update_substring(string, search_len, act):
 
-                end = min(len(string), search_length)
-                update = action(string[:end])
-                string = update + string[end:]
-                search_length -= end
-                return string, search_length
+                end = min(len(string), search_len)
+                upd = act(string[:end])
+                string = upd + string[end:]
+                search_len -= end
+                return string, search_len
 
             # Iterate over trans-units to parse source and target segments
             for element in obj:

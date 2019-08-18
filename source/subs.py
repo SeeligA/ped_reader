@@ -2,7 +2,7 @@ import copy
 import json
 
 from source.utils import dict_to_obj, obj_to_dict
-from source.calculation import virtual_pe_density
+from source.calculation import pe_density
 from source.xliff import create_tree
 from source.utils import retrieve_file_paths
 
@@ -39,7 +39,7 @@ class PreprocSub(object):
         if self.entries:
             # Create list and store current PED as a baseline.
             subs_ped = list()            
-            ped = virtual_pe_density(df)
+            ped, df = pe_density(df)
             subs_ped.append(ped)
             if verbose:
                 print("Original PED:\t{:f}".format(subs_ped[0]))
@@ -49,7 +49,7 @@ class PreprocSub(object):
                 # Apply search and replace to MT data
                 df = entry.search_and_replace(df)
                 # Compute new PED score and update "virtual" column in DataFrame
-                new_ped = virtual_pe_density(df)
+                new_ped, df = pe_density(df)
                 if verbose:
                     print("Updated PED:\t{:f}\t{}".format(new_ped, entry.desc))
                 # Calculate difference against old PED and store in entry object
@@ -61,6 +61,8 @@ class PreprocSub(object):
             self.ped_effect = ped - subs_ped[-1]
             # Re-index entries based on PED effect
             self.reindex_and_sort_entries()
+
+        return df
 
     def apply_to_working_files(self, directory, write=True):
 
