@@ -1,7 +1,6 @@
 import os
 import re
 import logging
-
 import pandas as pd
 
 # Prevent Pandas from truncating strings that are too long.
@@ -12,7 +11,8 @@ pd.set_option('max_colwidth', -1)
 def load_json(fp):
 
     df = pd.read_json(fp, orient="records", encoding='utf-8')
-
+    # Convert ped_detail dictionary to list
+    df.ped_details = df.ped_details.apply(lambda x: [x['score'], x['source'], x['target'], x['mt']])
     headers = ['score', 'source', 'target', 'mt']
     df[headers] = pd.DataFrame(df.ped_details.tolist(), index=df.index)
 
@@ -21,19 +21,19 @@ def load_json(fp):
 
 def create_df(directory):
     """Create DataFrame from archived JSON files."""
-    
+
     columns = ["Project", "Relation", "Document", "s_lid", "t_lid", "score", "source", "target", "mt"]
     df = pd.DataFrame(columns=columns)
-    
+
     for file in os.listdir(directory):
         logging.info("Loading: {}".format(file))
-        
+
         if file.endswith(".json"):
             fp = os.path.join(directory, file)
+            # Ignoring the index is optional. Set to True if consecutive index is preferred.
             df = df.append(load_json(fp), ignore_index=True, sort=False)
-    
     df = df.drop(["ped", "ped_details"], axis=1).reindex(columns=columns)
-    
+
     return df
 
 
