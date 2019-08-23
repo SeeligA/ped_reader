@@ -76,7 +76,7 @@ class PreprocSub(object):
                 tus = entry.search_and_replace(tus)
 
             if write:
-                tree.write(fp)
+                tree.write(fp, encoding="utf-8")
 
     def reindex_and_sort_entries(self):
 

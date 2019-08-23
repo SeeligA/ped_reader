@@ -1,5 +1,3 @@
-import numpy as np
-
 
 def levenshtein(s1, s2):
     """Calculate Levenshtein distance based on string1 and string2
