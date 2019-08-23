@@ -9,6 +9,7 @@ def create_tree(fp):
     tree = ET.parse(fp)
     root = tree.getroot()
 
-    # Parse all trans-unit elements for which the origin attribute is set to "mt"
-    tus = root.findall('xliff:file/xliff:body/xliff:trans-unit//*[@origin="mt"]/../..', NAMESPACES)
+    # Parse all trans-unit subelements with attribute "origin" and value "mt"
+    tus = root.findall('.//xliff:trans-unit//*[@origin="mt"]/../..', NAMESPACES)
+    #tus = root.findall('xliff:file/**/xliff:trans-unit//*[@origin="mt"]/../..', NAMESPACES)
     return tree, tus
