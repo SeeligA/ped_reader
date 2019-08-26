@@ -73,7 +73,9 @@ class PreprocSub(object):
 
             # Iterate through entries and run search & replace on MT data
             for entry in self.entries:
-                tus = entry.search_and_replace(tus)
+
+                #tus = entry.search_and_replace(tus)
+                entry.search_and_replace(tus)
 
             if write:
                 tree.write(fp, encoding="utf-8")

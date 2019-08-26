@@ -1,7 +1,7 @@
-
 import re
 
 from lxml import etree as ET
+
 
 class BaseEntry(object):
     def __init__(self, ID, created_by, ped_effect, desc, t_lid, s_lid, search, replace, source, condition):
@@ -21,7 +21,7 @@ class BaseEntry(object):
 
     def replace_target(self, element, replace=None):
 
-        print(self.desc)
+        #print(self.desc)
         replace = self.replace if replace is None else replace
 
         target = element.find("xliff:target", self.NAMESPACES).iter()
@@ -111,40 +111,22 @@ class ToggleCaseEntry(BaseEntry):
 
         search_length = self.search
 
+        function_dict = {'upper': [str.isupper, str.upper, 'isupper'],
+                         'lower': [str.islower, str.lower, 'islower'],
+                         'title': [str.istitle, str.title, 'istitle']
+                         }
+
         if obj.__class__.__name__ == "DataFrame":
-            #  TODO: Check which type is required for the Series data in order to call string methods from function dict
-            if self.replace == 'upper':
-                # Filter for rows in which the first n source characters are uppercase
-                source_filter = obj.source.str[0:search_length].str.isupper()
-
-                update = obj[source_filter].copy()
-                # Reset virtual scores if row matches source filter and search expression matches MT string
-                obj['virtual'] = obj['virtual'].mask(source_filter, self.mask_match(obj.copy()))
-
-                # Convert the first n MT characters to upper case and create Series
-                update = update.mt.str[0:search_length].str.upper()
-
-            elif self.replace == 'istitle':
-                # Filter for rows in which the first n source characters are in title case
-                source_filter = obj.source.str[0:search_length].str.istitle()
-
-                update = obj[source_filter].copy()
-                # Reset virtual scores if row matches source filter and search expression matches MT string
-                obj['virtual'] = obj['virtual'].mask(source_filter, self.mask_match(obj.copy()))
-
-                # Convert the first n MT characters to title case and create Series
-                update = update.mt.str[0:search_length].str.title()
-
-            elif self.replace == 'lower':
-                # Filter for rows in which the first n source characters are in title case
-                source_filter = obj.source.str[0:search_length].str.islower()
-
-                update = obj[source_filter].copy()
-                # Reset virtual scores if row matches source filter and search expression matches MT string
-                obj['virtual'] = obj['virtual'].mask(source_filter, self.mask_match(obj.copy()))
-
-                # Convert the first n MT characters to title case and create Series
-                update = update.mt.str[0:search_length].str.lower()
+            # Get source check variable from function dictionary using the replace attribute as key.
+            source_check = function_dict.get(self.replace)[2]
+            # Transform the string source variable to a Series string method by passing it to getattr.
+            # We use the method to filter for rows in which the first n source characters match the required case.
+            source_filter = getattr(obj.source.str[0:search_length].str, source_check)()
+            update = obj[source_filter].copy()
+            # Reset virtual scores if row matches source filter and search expression matches MT string
+            obj['virtual'] = obj['virtual'].mask(source_filter, self.mask_match(obj.copy()))
+            # Convert the first n MT characters to the required case and create Series
+            update = getattr(update.mt.str[0:search_length].str, self.replace)()
 
             # Extract MT strings that have not been changed and create Pandas Series
             if search_length is not None:
@@ -157,12 +139,7 @@ class ToggleCaseEntry(BaseEntry):
 
         elif obj.__class__.__name__ == "list":
 
-            function_dict = {'upper': [str.isupper, str.upper],
-                             'lower': [str.islower, str.lower],
-                             'title': [str.istitle, str.title]
-                             }
-
-            # Map replace string parameter against check and action in function dictionary.
+            # Get source check and action function from function dictionary using the replace attribute as key.
             source_check = function_dict.get(self.replace)[0]
             action = function_dict.get(self.replace)[1]
 
@@ -238,8 +215,6 @@ class ApplyTagEntry(BaseEntry):
                     else:
                         append_element(substring, replace, attrs=['text', 'tail'])
 
-        return obj
-
     def get_existing_tags_source(self, element, p):
         """Search for matching tags in source element.
         Arguments:
@@ -306,8 +281,8 @@ def append_element(element, replace, attrs):
                 replace.tail = replace.tail[idx+len(replace.text):]
 
 
-# def print_sample(fp, tu_id):
-#     tree, tus = create_tree(fp)
-#     sample = ET.tostring(tus[tu_id], encoding='utf-8', pretty_print=True).decode('utf-8')
-#     pp = pprint.PrettyPrinter(indent=4, width=120)
-#     pp.pprint(sample)
+# if __name__ == '__main__':
+#     os.chdir("..")
+#     df = create_df("data")
+#
+#     sys.exit(0)

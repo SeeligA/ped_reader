@@ -1,4 +1,5 @@
 from lxml import etree as ET
+import pprint
 
 NAMESPACES = {'xliff': 'urn:oasis:names:tc:xliff:document:1.2',
               'sdl': 'http://sdl.com/FileTypes/SdlXliff/1.0'
@@ -11,5 +12,11 @@ def create_tree(fp):
 
     # Parse all trans-unit subelements with attribute "origin" and value "mt"
     tus = root.findall('.//xliff:trans-unit//*[@origin="mt"]/../..', NAMESPACES)
-    #tus = root.findall('xliff:file/**/xliff:trans-unit//*[@origin="mt"]/../..', NAMESPACES)
     return tree, tus
+
+
+def print_sample(fp, tu_id):
+    tree, tus = create_tree(fp)
+    sample = ET.tostring(tus[tu_id], encoding='utf-8', pretty_print=True).decode('utf-8')
+    pp = pprint.PrettyPrinter(indent=4, width=120)
+    pp.pprint(sample)
