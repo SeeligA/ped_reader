@@ -1,7 +1,11 @@
 import re
 
 from lxml import etree as ET
-
+import os
+import sys
+#from source.entries import SearchMTEntry, SearchSourceEntry, ToggleCaseEntry, ApplyTagEntry
+from source.xliff import create_tree, print_sample
+from source.subs import PreprocSub
 
 class BaseEntry(object):
     def __init__(self, ID, created_by, ped_effect, desc, t_lid, s_lid, search, replace, source, condition):
@@ -183,20 +187,23 @@ class ApplyTagEntry(BaseEntry):
 
     def search_and_replace(self, obj):
 
+        if obj.__class__.__name__ == "DataFrame":
+            return obj
+
         p = re.compile(r'{}'.format(self.source))
 
         for element in obj:
 
             source_matches = self.get_existing_tags_source(element, p)
-            # Skip element if no match was found in source
-            if len(source_matches) == 0:
-                continue
+
             # For each matched tag in the source, create a new replacement element.
-            # If the same tag is missing from the target, we will replace the first
-            # match with the corresponding element.
+            # If the same tag is missing from the target, we replace the first match
+            # with the corresponding element.
             for i in range(len(source_matches)):
 
                 replace = ET.fromstring(source_matches[i][0])
+                if self.replace is not None:
+                    replace.text = self.replace
 
                 # We iterate over the target segment child elements
                 # in case it contained subsegments/external/inline tags.
@@ -210,10 +217,13 @@ class ApplyTagEntry(BaseEntry):
                         break
 
                     elif substring.text == replace.text:
-                        append_element(substring, replace, attrs=['tail'])
+                        match = append_element(substring, replace, attrs=['tail'])
 
                     else:
-                        append_element(substring, replace, attrs=['text', 'tail'])
+                        match = append_element(substring, replace, attrs=['text', 'tail'])
+
+                    if match:
+                        break
 
     def get_existing_tags_source(self, element, p):
         """Search for matching tags in source element.
@@ -242,15 +252,15 @@ class ApplyTagEntry(BaseEntry):
                                    format(replace.tag, replace.attrib.keys()[0],
                                           replace.attrib.values()[0]), self.NAMESPACES)
         # True if a match was found or if element string and replacement string are identical
-        check = sub_element is not None
-        return check
+        match = sub_element is not None
+        return match
 
 
 def append_element(element, replace, attrs):
     """Replace match in substring with child element with text
 
     Arguments:
-        substring -- Subelement from target segment
+        element -- Subelement from target segment
         replace -- Replacement element based on matching tags in source segment
         attrs -- List of relevant element attributes as strings "text" and/or "tails
 
@@ -258,31 +268,38 @@ def append_element(element, replace, attrs):
         None -- Matching strings in element are modified in place
     """
     attrs = [x for x in attrs if getattr(element, x) is not None]
+    # Note that the lookahead allows us to use %#!? etc in the replacement regex
+    p = re.compile(r'\b{}(?=\W|$)'.format(replace.text))
 
     for attr in attrs:
 
-        # Get string index in element for replacement match using the str method "find" NOT the element method
-        idx = getattr(element, attr).find(replace.text)
-        if idx != -1:
+        # Get string index in element for replacement match using the search method
+        m = p.search(getattr(element, attr))
+        if m:
+            idx = m.start()
+
             if attr == "text":
                 # Add existing string in search match as tail to the replace element
                 replace.tail = element.text[idx+len(replace.text):]
-                # Insert new element at the beginning of the substring.
-                element.append(replace)
+                # Insert new element after the substring's text,
+                # but before the next child element, if any.
+                element.insert(0, replace)
                 # Shorten substring text
                 element.text = element.text[:idx]
 
-            if attr == 'tail':
-                # Add replace element after current element. Since the tail of the current element
-                # becomes the tail of the replace element, we need to extract part of the replace tail
-                # and reintroduce it in the element tail.
+            else:
+                # Add replace element after the current element's closing tag.
                 element.addnext(replace)
+                # Since the tail of the current element becomes the tail of the
+                # replace element, we need to extract part of the replace tail
+                # and reintroduce it as the element tail.
                 element.tail = replace.tail[:idx]
                 replace.tail = replace.tail[idx+len(replace.text):]
 
+            return True
 
-# if __name__ == '__main__':
-#     os.chdir("..")
-#     df = create_df("data")
-#
-#     sys.exit(0)
+
+if __name__ == '__main__':
+    os.chdir("..")
+
+    sys.exit(0)

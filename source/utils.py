@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sb
 import os
-import zipfile
+from zipfile import ZipFile
 import sys
 
 
@@ -110,11 +110,24 @@ def obj_to_dict(obj):
 
 def create_backup(dir_name, fps):
 
-    zip_file = zipfile.ZipFile(os.path.join(dir_name, 'Backup_SDLXLIFF.zip'), 'w')
+    zip_file = ZipFile(os.path.join(dir_name, 'Backup_SDLXLIFF.zip'), 'w')
     with zip_file:
         [zip_file.write(fp) for fp in fps]
 
     print('Backup containing {} files created here: {}'.format(len(fps), dir_name))
+
+
+def unzip_sample(dir_name, fn="sample_files.zip"):
+    """Extract file(s) from zip and return path(s) to file(s)."""
+
+    fps = list()
+    with ZipFile(os.path.join(dir_name, fn)) as zip_file:
+        for file in zip_file.namelist():
+            fps.append(os.path.join(dir_name, file))
+        zip_file.extractall(dir_name)
+        print(f'Sample extracted here: {dir_name}')
+
+    return fps
 
 
 def retrieve_file_paths(dir_name):

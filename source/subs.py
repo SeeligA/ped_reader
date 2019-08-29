@@ -67,6 +67,7 @@ class PreprocSub(object):
     def apply_to_working_files(self, directory, write=True):
 
         fps = retrieve_file_paths(directory)
+        cache = dict()
 
         for fp in fps:
             tree, tus = create_tree(fp)
@@ -74,15 +75,17 @@ class PreprocSub(object):
             # Iterate through entries and run search & replace on MT data
             for entry in self.entries:
 
-                #tus = entry.search_and_replace(tus)
                 entry.search_and_replace(tus)
 
+            cache[fp] = tus
             if write:
                 tree.write(fp, encoding="utf-8")
 
+        return cache
+
     def reindex_and_sort_entries(self):
 
-        for idx, entry in enumerate(sorted(self.entries, key=lambda entry: entry.ped_effect, reverse=True)):
+        for idx, entry in enumerate(sorted(self.entries, key=lambda x: x.ped_effect, reverse=True)):
             entry.ID = idx
         self.entries = sorted(self.entries, key=lambda entry: entry.ID)
     
