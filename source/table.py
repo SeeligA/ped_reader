@@ -36,7 +36,6 @@ def create_df(directory):
 
     return df
 
-
 def build_query(filter_dict):
     """
     Arguments:
@@ -70,7 +69,7 @@ def build_query(filter_dict):
 
         query += ") & "
     query = query.strip(" & ")
-    print('Query created: ', query)
+    #print(query)
     return query
 
 

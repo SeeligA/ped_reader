@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sb
 import os
+
 from zipfile import ZipFile
 import sys
 
@@ -51,7 +52,7 @@ def plot(df, cat_column=None, kde=True, save=False, color=None, ped=None, linewi
     
     if save:
         g.savefig(save, pad_inches=0.1)
-        
+
         
 def dict_to_obj(obj_dict):
     """

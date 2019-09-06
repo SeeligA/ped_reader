@@ -3,9 +3,7 @@ import re
 from lxml import etree as ET
 import os
 import sys
-#from source.entries import SearchMTEntry, SearchSourceEntry, ToggleCaseEntry, ApplyTagEntry
-from source.xliff import create_tree, print_sample
-from source.subs import PreprocSub
+
 
 class BaseEntry(object):
     def __init__(self, ID, created_by, ped_effect, desc, t_lid, s_lid, search, replace, source, condition):
@@ -25,7 +23,6 @@ class BaseEntry(object):
 
     def replace_target(self, element, replace=None):
 
-        #print(self.desc)
         replace = self.replace if replace is None else replace
 
         target = element.find("xliff:target", self.NAMESPACES).iter()
