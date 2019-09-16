@@ -131,16 +131,16 @@ def unzip_sample(dir_name, fn="sample_files.zip"):
     return fps
 
 
-def retrieve_file_paths(dir_name):
+def retrieve_file_paths(directory):
     # setup file paths variable
     fps = []
     # Read all directory, subdirectories and file lists
-    for root, dirs, files in os.walk(dir_name):
+    for root, dirs, files in os.walk(directory):
         for filename in filter(lambda file: file.endswith('.sdlxliff'), files):
             fps.append(os.path.join(root, filename))
 
     if len(fps) > 0:
-        create_backup(dir_name, fps)
+        create_backup(directory, fps)
         return fps
 
     else:

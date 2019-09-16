@@ -64,9 +64,11 @@ class PreprocSub(object):
 
         return df
 
-    def apply_to_working_files(self, directory, write=True):
+    def apply_to_working_files(self, fps, write=True):
+        """"""
 
-        fps = retrieve_file_paths(directory)
+        if fps == str():
+            fps = retrieve_file_paths(fps)
         cache = dict()
 
         for fp in fps:

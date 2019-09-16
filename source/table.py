@@ -19,6 +19,10 @@ def load_json(fp):
     return df
 
 
+def load_csv(fp):
+    return pd.read_csv(fp, encoding="utf-8", index_col=0)
+
+
 def create_df(directory):
     """Create DataFrame from archived JSON files."""
 
@@ -32,9 +36,16 @@ def create_df(directory):
             fp = os.path.join(directory, file)
             # Ignoring the index is optional. Set to True if consecutive index is preferred.
             df = df.append(load_json(fp), ignore_index=True, sort=False)
-    df = df.drop(["ped", "ped_details"], axis=1).reindex(columns=columns)
+
+        elif file.endswith(".csv"):
+            fp = os.path.join(directory, file)
+            df = df.append(load_csv(fp), ignore_index=True, sort=False)
+
+    if "ped" in df.columns and "ped_details" in df.columns:
+        df = df.drop(["ped", "ped_details"], axis=1).reindex(columns=columns)
 
     return df
+
 
 def build_query(filter_dict):
     """
