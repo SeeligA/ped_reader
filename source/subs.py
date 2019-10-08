@@ -95,7 +95,7 @@ class PreprocSub(object):
 
         with open(fp, 'r', encoding="utf-8") as f:
             data = json.load(f)
-        
+
         if data["entries"]:
             data["entries"] = list(map(dict_to_obj, data["entries"]))
 

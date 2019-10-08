@@ -3,7 +3,7 @@
 Two interactive notebooks to analyze and improve machine translation output.
 
 ## How are these resources useful?
-The Reader notebook uses the post-edit density metric for analyzing and comparing productivity rates across vendors, languages and projects. It can be used on its own or as a reporting solution for the [Woerdle-zehla](https://github.com/SeeligA/woerdle-zehla "wordle-zehla on GitHub") tool. The notebook helps you to address frequent errors and mistranslation in your MT output in a statistically significant way.
+The Reader notebook uses the post-edit density metric for analyzing and comparing productivity rates across vendors, languages and projects. It can be used on its own or as a reporting solution for the [Woerdle-zehla](https://github.com/SeeligA/woerdle-zehla "woerdle-zehla on GitHub") tool. The notebook helps you to address frequent errors and mistranslation in your MT output in a statistically significant way.
 
 The Writer notebook translates analysis into action. Decrease post-editing efforts by applying search and replace actions directly to your XLIFF files.
 

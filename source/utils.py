@@ -75,13 +75,15 @@ def dict_to_obj(obj_dict):
         # Get the class from the module. The control flow is to help find modules from the "source" folder
         if module_name == "source.entries":
             class_ = getattr(module.entries, class_name)
+            obj = class_(obj_dict)
         elif module_name == "source.subs":
             class_ = getattr(module.subs, class_name)
+            # Use dictionary unpacking to initialize the object
+            obj = class_(**obj_dict)
         else:
             class_ = getattr(module, class_name)
+            obj = class_(**obj_dict)
 
-        # Use dictionary unpacking to initialize the object
-        obj = class_(**obj_dict)
     else:
         obj = obj_dict
     return obj

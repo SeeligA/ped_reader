@@ -6,17 +6,18 @@ import sys
 
 
 class BaseEntry(object):
-    def __init__(self, ID, created_by, ped_effect, desc, t_lid, s_lid, search, replace, source, condition):
+    def __init__(self, search, replace, ID=None, created_by=None, ped_effect=None, desc=None,
+                 s_lid=None, t_lid=None, source_filter=None):
+
         self.ID = ID
+        self.search = search
+        self.replace = replace
         self.created_by = created_by
         self.ped_effect = ped_effect
         self.desc = desc
         self.t_lid = t_lid
-        self.s_lid = s_lid        
-        self.search = search
-        self.replace = replace
-        self.condition = condition
-        self.source = source
+        self.s_lid = s_lid
+        self.source_filter = source_filter
         self.NAMESPACES = {'xliff': 'urn:oasis:names:tc:xliff:document:1.2',
                            'sdl': 'http://sdl.com/FileTypes/SdlXliff/1.0'
                            }
@@ -41,12 +42,12 @@ class BaseEntry(object):
         p = re.compile(r'{}'.format(self.search))
 
         return df["virtual"].mask(df.mt.str.contains(p) == True)
-    
+
 
 class SearchMTEntry(BaseEntry):
-    def __init__(self, ID, created_by, ped_effect, desc, t_lid, s_lid, search, replace, source=None, condition="MT_only"):
-        BaseEntry.__init__(self, ID, created_by, ped_effect, desc, t_lid, s_lid, search, replace, None, "MT_only")
-        
+    def __init__(self, kwargs):
+        BaseEntry.__init__(self, **kwargs)
+
     def search_and_replace(self, obj):
 
         if obj.__class__.__name__ == "DataFrame":
@@ -62,12 +63,14 @@ class SearchMTEntry(BaseEntry):
 
 
 class SearchSourceEntry(BaseEntry):
-    def __init__(self, ID, created_by, ped_effect, desc, t_lid, s_lid, search, replace, source, condition="Source+MT"):
-        BaseEntry.__init__(self, ID, created_by, ped_effect, desc, t_lid, s_lid, search, replace, source, "Source+MT")
-        
+    def __init__(self, kwargs):
+        BaseEntry.__init__(self, **kwargs)
+        # Entry validation
+        assert self.source_filter
+
     def search_and_replace(self, obj):
-        
-        p = re.compile(r'{}'.format(self.source))
+
+        p = re.compile(r'{}'.format(self.source_filter))
 
         if obj.__class__.__name__ == "DataFrame":
             # Create filter based on source expression
@@ -91,10 +94,13 @@ class SearchSourceEntry(BaseEntry):
 
         return obj
 
-    
+
 class ToggleCaseEntry(BaseEntry):
-    def __init__(self, ID, created_by, ped_effect, desc, t_lid, s_lid, search, replace, source=None, condition="Toggle Case"):
-        BaseEntry.__init__(self, ID, created_by, ped_effect, desc, t_lid, s_lid, search, replace, None, "Toggle Case")
+    def __init__(self, kwargs):
+        # Entry validation
+        kwargs['search'] = int(kwargs['search'])
+        kwargs['replace'] = kwargs['replace'].lower()
+        BaseEntry.__init__(self, **kwargs)
 
     def search_and_replace(self, obj):
         """Change case of the target string.
@@ -133,7 +139,7 @@ class ToggleCaseEntry(BaseEntry):
             if search_length is not None:
                 rest = obj[source_filter].mt.str[search_length:]
                 # Concatenate strings and update MT column
-                obj.mt.update(update+rest)
+                obj.mt.update(update + rest)
 
             else:
                 obj.mt.update(update)
@@ -179,15 +185,15 @@ class ToggleCaseEntry(BaseEntry):
 
 
 class ApplyTagEntry(BaseEntry):
-    def __init__(self, ID, created_by, ped_effect, desc, t_lid, s_lid, search, replace, source, condition="Source+MT"):
-        BaseEntry.__init__(self, ID, created_by, ped_effect, desc, t_lid, s_lid, search, replace, source, "Source+MT")
+    def __init__(self, kwargs):
+        BaseEntry.__init__(self, **kwargs)
 
     def search_and_replace(self, obj):
 
         if obj.__class__.__name__ == "DataFrame":
             return obj
 
-        p = re.compile(r'{}'.format(self.source))
+        p = re.compile(r'{}'.format(self.source_filter))
 
         for element in obj:
 
@@ -277,7 +283,7 @@ def append_element(element, replace, attrs):
 
             if attr == "text":
                 # Add existing string in search match as tail to the replace element
-                replace.tail = element.text[idx+len(replace.text):]
+                replace.tail = element.text[idx + len(replace.text):]
                 # Insert new element after the substring's text,
                 # but before the next child element, if any.
                 element.insert(0, replace)
@@ -291,7 +297,7 @@ def append_element(element, replace, attrs):
                 # replace element, we need to extract part of the replace tail
                 # and reintroduce it as the element tail.
                 element.tail = replace.tail[:idx]
-                replace.tail = replace.tail[idx+len(replace.text):]
+                replace.tail = replace.tail[idx + len(replace.text):]
 
             return True
 
